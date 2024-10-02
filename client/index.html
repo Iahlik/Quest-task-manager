@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="https://cdn-icons-png.freepik.com/256/4133/4133602.png?semt=ais_hybrid" type="image/jpeg">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <title>Quest Manager - Gamificación de Tareas</title>
+</head>
+
+<body>
+  <div class="container">
+    <header class="my-4 text-center">
+      <h1 class="display-5">Quest Manager - ¡Gamifica tus tareas!</h1>
+      <p class="lead">Completa misiones, gana puntos, y usa esos puntos para actividades de bienestar.</p>
+      <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addMissionModal">Agregar Misión</button>
+      <button class="btn btn-danger my-3" onclick="resetAll()">Resetear Todo</button>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRewardModal">Agregar
+        Recompensa</button>
+    </header>
+    <div class="container text-center">
+      <h4>Puntos Totales: <span id="total-points">0</span></h4>
+    </div>
+    <div class="row">
+      <section id="missions" class="col-md-6 mb-1">
+        <h2 class="container text-center">Misiones Disponibles</h2>
+        <div id="mission-list" class="list-group mb-3"></div>
+      </section>
+
+      <section id="rewards" class="col-md-6 mb-1">
+        <h2 class="container text-center">Recompensas por Bienestar</h2>
+        <div id="reward-list" class="list-group mb-3"></div>
+      </section>
+    </div>
+  </div>
+
+
+
+  <footer class="bg-dark text-center py-4 mt-5">
+    <p class="mb-0">Me llamo Ignacio Larraín, soy Programador Full Stack en JS. Este es un proyecto de práctica, estaba
+      un poco oxidado. ¡Espero lo disfrutes!</p>
+    <div class="social-buttons mt-3">
+      <a href="https://github.com/Iahlik" target="_blank" class="btn btn-info btn-sm me-2">
+        <i class="fab fa-github"></i> GitHub
+      </a>
+      <a href="https://wa.link/edj1we" target="_blank" class="btn btn-success btn-sm me-2">
+        <i class="fab fa-whatsapp"></i> WhatsApp
+      </a>
+      <a href="https://www.linkedin.com/in/ignacio-larra%C3%ADn-villegas-13091565/" target="_blank"
+        class="btn btn-primary btn-sm">
+        <i class="fab fa-linkedin"></i> LinkedIn
+      </a>
+    </div>
+
+    <div class="modal fade" id="addMissionModal" tabindex="-1" aria-labelledby="addMissionModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addMissionModalLabel">Agregar Misión</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" id="mission-title" class="form-control" placeholder="Título de la misión">
+            </div>
+            <select id="mission-difficulty" class="form-select my-2">
+              <option value="Fácil">Fácil</option>
+              <option value="Normal">Normal</option>
+              <option value="Difícil">Difícil</option>
+            </select>
+            <input type="number" id="mission-reward" class="form-control my-2" placeholder="Puntos de recompensa">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button id="add-mission" class="btn btn-primary">Agregar Misión</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="addRewardModal" tabindex="-1" aria-labelledby="addRewardModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addRewardModalLabel">Agregar Recompensa</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" id="reward-title" class="form-control" placeholder="Título de la recompensa">
+            </div>
+            <input type="number" id="reward-points" class="form-control my-2" placeholder="Puntos requeridos">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button id="add-reward" class="btn btn-primary">Agregar Recompensa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
