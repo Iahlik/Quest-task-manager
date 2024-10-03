@@ -12,14 +12,13 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, '../client')));
 
-const db = new sqlite3.Database('./quest_manager.db');
+const db = new sqlite3.Database(path.join(__dirname, '../quest_manager.db'));
 
 // Creación de tabas
 db.serialize(() => {
-    db.run("CREATE TABLE players (id INTEGER PRIMARY KEY, total_points INTEGER)");
-    db.run("CREATE TABLE missions (id INTEGER PRIMARY KEY, title TEXT, difficulty TEXT, reward_points INTEGER)");
-    db.run("CREATE TABLE rewards (id INTEGER PRIMARY KEY, description TEXT, points_required INTEGER)");
-
+    db.run("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY, total_points INTEGER)");
+    db.run("CREATE TABLE IF NOT EXISTS missions (id INTEGER PRIMARY KEY, title TEXT, difficulty TEXT, reward_points INTEGER)");
+    db.run("CREATE TABLE IF NOT EXISTS rewards (id INTEGER PRIMARY KEY, description TEXT, points_required INTEGER)");
 
     db.run("INSERT INTO players (total_points) VALUES (0)");
 
