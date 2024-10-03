@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, '../client')));
 
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./quest_manager.db');
 
 // Creación de tabas
 db.serialize(() => {
