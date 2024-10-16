@@ -29,7 +29,16 @@ h2 {
 }
 
 footer {
-  position: relative;
-  bottom: 0;
-  width: 100%;
+  padding: 10px;
+  background-color: #000;
+  z-index: 1; /* En caso de que el footer esté superponiéndose a otros elementos */
+}
+.modal {
+  z-index: 1050;
+}
+.modal-backdrop {
+  z-index: 1040;
+}
+.custom-padding-row {
+  padding-bottom: 200px !important;
 }
