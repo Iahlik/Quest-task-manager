@@ -14,21 +14,46 @@ app.use(express.static(path.join(__dirname, '../client')));
 
 const db = new sqlite3.Database(path.join(__dirname, '../quest_manager.db'));
 
-// Creación de tabas
+// Creación de tablas
 db.serialize(() => {
     db.run("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY, total_points INTEGER)");
     db.run("CREATE TABLE IF NOT EXISTS missions (id INTEGER PRIMARY KEY, title TEXT, difficulty TEXT, reward_points INTEGER)");
     db.run("CREATE TABLE IF NOT EXISTS rewards (id INTEGER PRIMARY KEY, description TEXT, points_required INTEGER)");
 
-    db.run("INSERT INTO players (total_points) VALUES (0)");
+    // Solo insertar datos iniciales si las tablas están vacías
+    db.get("SELECT COUNT(*) AS count FROM players", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla players:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO players (total_points) VALUES (0)");
+        }
+    });
 
-    db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Limpiar el baño', 'Fácil', 50)");
-    db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Lavar loza', 'Fácil', 30)");
-    db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Hacer la compra', 'Normal', 40)");
+    db.get("SELECT COUNT(*) AS count FROM missions", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla missions:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Limpiar el baño', 'Fácil', 50)");
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Lavar loza', 'Fácil', 30)");
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Hacer la compra', 'Normal', 40)");
+        }
+    });
 
-    db.run("INSERT INTO rewards (description, points_required) VALUES ('Caminata por el parque', 50)");
-    db.run("INSERT INTO rewards (description, points_required) VALUES ('Ida al cine', 200)");
-    db.run("INSERT INTO rewards (description, points_required) VALUES ('Comprar un helado', 100)");
+    db.get("SELECT COUNT(*) AS count FROM rewards", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla rewards:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Caminata por el parque', 50)");
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Ida al cine', 200)");
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Comprar un helado', 100)");
+        }
+    });
 });
 
 app.get('/', (req, res) => {
@@ -55,7 +80,7 @@ app.get('/api/missions', (req, res) => {
     });
 });
 
-// Agregar mision
+// Agregar misión
 app.post('/api/missions', (req, res) => {
     const { title, difficulty, reward_points } = req.body;
     db.run('INSERT INTO missions (title, difficulty, reward_points) VALUES (?, ?, ?)', [title, difficulty, reward_points], function (err) {
@@ -67,7 +92,7 @@ app.post('/api/missions', (req, res) => {
     });
 });
 
-// Completar mision
+// Completar misión
 app.put('/api/missions/:id/complete', (req, res) => {
     const id = req.params.id;
     db.get('SELECT * FROM missions WHERE id = ?', [id], (err, mission) => {
@@ -99,7 +124,7 @@ app.get('/api/rewards', (req, res) => {
     });
 });
 
-// Agregar recompensas
+// Agregar recompensa
 app.post('/api/rewards', (req, res) => {
     const { description, points_required } = req.body;
     db.run('INSERT INTO rewards (description, points_required) VALUES (?, ?)', [description, points_required], function (err) {
@@ -111,7 +136,7 @@ app.post('/api/rewards', (req, res) => {
     });
 });
 
-// Canjear recompensas
+// Canjear recompensa
 app.post('/api/rewards/:id/redeem', (req, res) => {
     const id = req.params.id;
     db.get('SELECT * FROM rewards WHERE id = ?', [id], (err, reward) => {
@@ -135,19 +160,8 @@ app.post('/api/rewards/:id/redeem', (req, res) => {
     });
 });
 
-// // Ruta para resetear todas las misiones
-// app.delete('/api/missions/reset', (req, res) => {
-//     db.run('DELETE FROM missions', (err) => {
-//         if (err) {
-//             return res.status(500).send({ message: 'Error al resetear misiones.' });
-//         }
-//         res.send({ message: 'Todas las misiones han sido eliminadas.' });
-//     });
-// });
-
 // Resetear todo
 app.delete('/api/rewards/reset', (req, res) => {
-
     db.run('DELETE FROM missions', (err) => {
         if (err) {
             return res.status(500).send({ message: 'Error al resetear misiones.' });
