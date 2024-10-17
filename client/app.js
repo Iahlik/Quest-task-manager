@@ -111,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Función para agregar misión
   function addMission(title, difficulty, reward_points) {
     fetch('/api/missions', {
       method: 'POST',
@@ -120,10 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       body: JSON.stringify({ title, difficulty, reward_points }),
     })
-      .then(response => response.json())
-      .then(() => fetchMissions());
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error al agregar misión: ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(() => fetchMissions())
+      .catch(error => console.error('Error:', error));
   }
-
   // Función para agregar recompensa
   function addReward(description, points_required) {
     fetch('/api/rewards', {
