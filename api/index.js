@@ -1,104 +1,110 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configura la conexión a la base de datos
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
 app.use(cors());
 app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, '../client')));
 
-// Creación de tablas (solo una vez)
-const createTables = async () => {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS players (
-            id SERIAL PRIMARY KEY,
-            total_points INTEGER DEFAULT 0
-        );
-        
-        CREATE TABLE IF NOT EXISTS missions (
-            id SERIAL PRIMARY KEY,
-            title TEXT,
-            difficulty TEXT,
-            reward_points INTEGER
-        );
+const db = new sqlite3.Database(path.join(__dirname, '../quest_manager.db'));
 
-        CREATE TABLE IF NOT EXISTS rewards (
-            id SERIAL PRIMARY KEY,
-            description TEXT,
-            points_required INTEGER
-        );
-    `);
-};
+// Creación de tablas
+db.serialize(() => {
+    db.run("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY, total_points INTEGER)");
+    db.run("CREATE TABLE IF NOT EXISTS missions (id INTEGER PRIMARY KEY, title TEXT, difficulty TEXT, reward_points INTEGER)");
+    db.run("CREATE TABLE IF NOT EXISTS rewards (id INTEGER PRIMARY KEY, description TEXT, points_required INTEGER)");
 
-// Llama a la función para crear tablas
-createTables().catch(err => console.error('Error al crear tablas:', err));
+    // Solo insertar datos iniciales si las tablas están vacías
+    db.get("SELECT COUNT(*) AS count FROM players", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla players:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO players (total_points) VALUES (0)");
+        }
+    });
 
-// Rutas
+    db.get("SELECT COUNT(*) AS count FROM missions", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla missions:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Limpiar el baño', 'Fácil', 50)");
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Lavar loza', 'Fácil', 30)");
+            db.run("INSERT INTO missions (title, difficulty, reward_points) VALUES ('Hacer la compra', 'Normal', 40)");
+        }
+    });
+
+    db.get("SELECT COUNT(*) AS count FROM rewards", (err, row) => {
+        if (err) {
+            console.error("Error al verificar tabla rewards:", err);
+            return;
+        }
+        if (row.count === 0) {
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Caminata por el parque', 50)");
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Ida al cine', 200)");
+            db.run("INSERT INTO rewards (description, points_required) VALUES ('Comprar un helado', 100)");
+        }
+    });
+});
+
 app.get('/', (req, res) => {
     res.send('¡Bienvenido a la aplicación de gestión de tareas!');
 });
 
 // Get puntos
 app.get('/api/player', (req, res) => {
-    pool.query('SELECT total_points FROM players WHERE id = $1', [1], (err, result) => {
-        if (err || result.rows.length === 0) {
+    db.get('SELECT total_points FROM players WHERE id = ?', [1], (err, player) => {
+        if (err || !player) {
             return res.status(404).send({ message: 'Jugador no encontrado.' });
         }
-        res.status(200).send({ total_points: result.rows[0].total_points });
+        res.status(200).send({ total_points: player.total_points });
     });
 });
 
 // Get misiones
 app.get('/api/missions', (req, res) => {
-    pool.query('SELECT * FROM missions', (err, result) => {
+    db.all('SELECT * FROM missions', [], (err, missions) => {
         if (err) {
             return res.status(500).send({ message: 'Error al obtener misiones.' });
         }
-        res.status(200).json(result.rows);
+        res.status(200).json(missions);
     });
 });
 
 // Agregar misión
 app.post('/api/missions', (req, res) => {
     const { title, difficulty, reward_points } = req.body;
-    pool.query('INSERT INTO missions (title, difficulty, reward_points) VALUES ($1, $2, $3) RETURNING id', 
-        [title, difficulty, reward_points], (err, result) => {
+    db.run('INSERT INTO missions (title, difficulty, reward_points) VALUES (?, ?, ?)', [title, difficulty, reward_points], function (err) {
         if (err) {
             console.error('Error en la base de datos:', err);
             return res.status(500).send({ message: 'Error al agregar misión.' });
         }
-        res.status(201).send({ message: 'Misión agregada con éxito.', id: result.rows[0].id });
+        res.status(201).send({ message: 'Misión agregada con éxito.', id: this.lastID });
     });
 });
 
 // Completar misión
 app.put('/api/missions/:id/complete', (req, res) => {
     const id = req.params.id;
-    pool.query('SELECT * FROM missions WHERE id = $1', [id], (err, result) => {
-        if (err || result.rows.length === 0) {
+    db.get('SELECT * FROM missions WHERE id = ?', [id], (err, mission) => {
+        if (err || !mission) {
             return res.status(404).send({ message: 'Misión no encontrada.' });
         }
-        const mission = result.rows[0];
-        pool.query('DELETE FROM missions WHERE id = $1', [id], (err) => {
+        db.run('DELETE FROM missions WHERE id = ?', [id], (err) => {
             if (err) {
                 return res.status(500).send({ message: 'Error al completar la misión.' });
             }
 
-            pool.query('UPDATE players SET total_points = total_points + $1 WHERE id = $2', 
-                [mission.reward_points, 1], (err) => {
+            db.run('UPDATE players SET total_points = total_points + ?', [mission.reward_points], (err) => {
                 if (err) {
                     return res.status(500).send({ message: 'Error al actualizar los puntos.' });
                 }
@@ -110,45 +116,41 @@ app.put('/api/missions/:id/complete', (req, res) => {
 
 // Get recompensas
 app.get('/api/rewards', (req, res) => {
-    pool.query('SELECT * FROM rewards', (err, result) => {
+    db.all('SELECT * FROM rewards', [], (err, rewards) => {
         if (err) {
             return res.status(500).send({ message: 'Error al obtener recompensas.' });
         }
-        res.status(200).json(result.rows);
+        res.status(200).json(rewards);
     });
 });
 
 // Agregar recompensa
 app.post('/api/rewards', (req, res) => {
     const { description, points_required } = req.body;
-    pool.query('INSERT INTO rewards (description, points_required) VALUES ($1, $2) RETURNING id', 
-        [description, points_required], (err, result) => {
+    db.run('INSERT INTO rewards (description, points_required) VALUES (?, ?)', [description, points_required], function (err) {
         if (err) {
             console.error('Error en la base de datos:', err);
             return res.status(500).send({ message: 'Error al agregar recompensa.' });
         }
-        res.status(201).send({ message: 'Recompensa agregada con éxito.', id: result.rows[0].id });
+        res.status(201).send({ message: 'Recompensa agregada con éxito.', id: this.lastID });
     });
 });
 
 // Canjear recompensa
 app.post('/api/rewards/:id/redeem', (req, res) => {
     const id = req.params.id;
-    pool.query('SELECT * FROM rewards WHERE id = $1', [id], (err, result) => {
-        if (err || result.rows.length === 0) {
+    db.get('SELECT * FROM rewards WHERE id = ?', [id], (err, reward) => {
+        if (err || !reward) {
             return res.status(404).send({ message: 'Recompensa no encontrada.' });
         }
-        const reward = result.rows[0];
-        pool.query('SELECT total_points FROM players WHERE id = $1', [1], (err, result) => {
-            if (err || result.rows.length === 0) {
+        db.get('SELECT total_points FROM players WHERE id = ?', [1], (err, player) => {
+            if (err || !player) {
                 return res.status(404).send({ message: 'Jugador no encontrado.' });
             }
-            const player = result.rows[0];
             if (player.total_points < reward.points_required) {
                 return res.status(400).send({ message: 'No tienes suficientes puntos para canjear esta recompensa.' });
             }
-            pool.query('UPDATE players SET total_points = total_points - $1 WHERE id = $2', 
-                [reward.points_required, 1], (err) => {
+            db.run('UPDATE players SET total_points = total_points - ?', [reward.points_required], (err) => {
                 if (err) {
                     return res.status(500).send({ message: 'Error al canjear la recompensa.' });
                 }
@@ -160,17 +162,17 @@ app.post('/api/rewards/:id/redeem', (req, res) => {
 
 // Resetear todo
 app.delete('/api/rewards/reset', (req, res) => {
-    pool.query('DELETE FROM missions', (err) => {
+    db.run('DELETE FROM missions', (err) => {
         if (err) {
             return res.status(500).send({ message: 'Error al resetear misiones.' });
         }
 
-        pool.query('DELETE FROM rewards', (err) => {
+        db.run('DELETE FROM rewards', (err) => {
             if (err) {
                 return res.status(500).send({ message: 'Error al resetear recompensas.' });
             }
 
-            pool.query('UPDATE players SET total_points = 0', (err) => {
+            db.run('UPDATE players SET total_points = 0', (err) => {
                 if (err) {
                     return res.status(500).send({ message: 'Error al restablecer los puntos.' });
                 }
