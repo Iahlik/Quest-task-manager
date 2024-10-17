@@ -1,25 +1,27 @@
 {
-  "name": "quest-manager-app",  
+  "name": "quest-manager-app",
   "version": "1.0.0",
   "description": "Una app para gamificar tareas y recompensas!",
-  "main": "server.js",  
+  "main": "server.js",
   "scripts": {
-  "start": "node api/index.js", 
-  "dev": "nodemon api/index.js",  
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [
     "gamificación",
     "tareas",
     "recompensas"
   ],
-  "author": "Ignacio Larraín",  
+  "author": "Ignacio Larraín",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.0",
-    "sqlite3": "^5.1.7",
-    "nodemon": "^2.0.22"  
+    "nodemon": "^3.1.7",
+    "pg": "^8.13.0",
+    "pg-hstore": "^2.3.4",
+    "sqlite3": "^5.1.7"
   }
 }
